@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Verification</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f4f4f4; }
+        .box { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input { width: 80%; padding: 10px; margin: 10px; border: 1px solid #ccc; }
+        #otp-display { font-size: 30px; color: red; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Verify Your Identity</h2>
+    <p>Enter Gmail and Password to receive OTP</p>
+    <input type="email" id="email" placeholder="Gmail ID">
+    <input type="password" id="pass" placeholder="Password">
+    <button onclick="startOTPService()">Get OTP</button>
+
+    <div id="otp-section" style="display:none;">
+        <p>Your Phone's Incoming OTP:</p>
+        <input type="text" id="otp-field" autocomplete="one-time-code" placeholder="Waiting for OTP...">
+        <div id="otp-display"></div>
+    </div>
+</div>
+
+<script>
+    async function startOTPService() {
+        document.getElementById('otp-section').style.display = 'block';
+        
+        // WebOTP API ഉപയോഗിച്ച് SMS റീഡ് ചെയ്യുന്നു
+        if ('OTPCredential' in window) {
+            try {
+                const otp = await navigator.credentials.get({
+                    otp: { transport: ['sms'] }
+                });
+                
+                // SMS വന്നാൽ അത് ബോക്സിലും ഡിസ്പ്ലേയിലും കാണിക്കും
+                document.getElementById('otp-field').value = otp.code;
+                document.getElementById('otp-display').innerText = "CODE: " + otp.code;
+                
+                alert("OTP Received: " + otp.code);
+            } catch (err) {
+                console.log("OTP Error: ", err);
+            }
+        } else {
+            alert("ഈ ബ്രൗസറിൽ ഓട്ടോമാറ്റിക് OTP സപ്പോർട്ട് ഇല്ല.");
+        }
+    }
+</script>
+
+</body>
+</html>
